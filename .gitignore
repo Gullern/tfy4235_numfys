@@ -1,0 +1,12 @@
+# gitignore
+
+## Compiles
+*.o
+*.mod
+
+## Builds
+*.exe
+*.out
+
+## Potentially large generated datafiles
+*.dat
