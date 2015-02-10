@@ -1,11 +1,12 @@
-##Parameters
+## Parameters
 AUTOBUILDS=
 BUILDS=tester
 MODULES=num_int_1d seed_init
-LIBS=
+LIBS=slatec
+LIBPATH=$(HOME)/lib/
 
 
-##Preferences
+## Preferences
 FC=gfortran
 FFLAGS=-g -ffree-form
 LDFLAGS=
@@ -13,8 +14,12 @@ RM=rm -f
 GARBAGE=*.o *.mod
 EXEC=*.out *.exe
 
+
+## DEF
+LIBARGS=-L$(LIBPATH) $(LIBS:%=-l%)
+
 define LINK
-$(FC) $(FFLAGS) $^ $(LDFLAGS) -o $@.out
+$(FC) $(FFLAGS) $^ $(LDFLAGS) -o $@.out $(LIBARGS)
 endef
 
 define COMPILE
@@ -23,7 +28,11 @@ endef
 
 
 ## General
-all: $(BUILDS) $(AUTOBUILDS)
+all: builds
+
+builds: $(BUILDS) $(AUTOBUILDS)
+
+modules: $(MODULES)
 
 
 ## Dependencies
@@ -42,7 +51,7 @@ $(AUTOBUILDS): %: %.o
 ## UTILS
 .INTERMEDIATE: $(BUILDS:%=%.o) $(AUTOBUILDS:%=%.o) $(MODULES:%=%.o)
 
-.PHONY: all clean vclean
+.PHONY: all clean vclean builds modules
 
 clean:
 	$(RM) $(GARBAGE)
