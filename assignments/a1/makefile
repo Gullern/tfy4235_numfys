@@ -27,10 +27,16 @@ OBJECT=.o
 
 
 ## DEFS
+AUTOBUILDS:=$(AUTOBUILDS:%=%$(OUTPUT))
+BUILDS:=$(BUILDS:%=%$(OUTPUT))
+MODULES:=$(MODULES:%=%$(OBJECT))
+STDMODS:=$(STDMODS:%=%$(OBJECT))
+
 LIBARGS=-L$(LIBPATH) $(LIBS:%=-l%)
+STDMODARGS=$(STDMODS:%=$(STDMODPATH)/%)
 
 define LINK
-$(FC) $(FFLAGS) $^ $(LDFLAGS) -o $@$(OUTPUT) $(LIBARGS) $(STDMODPATH)/$(STDMODS)$(OBJECT)
+$(FC) $(FFLAGS) $^ $(LDFLAGS) -o $@ $(LIBARGS) $(STDMODARGS)
 endef
 
 define COMPILE
@@ -40,6 +46,9 @@ endef
 
 ## GENERAL
 all: builds
+
+remake:
+	$(MAKE) --always-make all
 
 builds: $(BUILDS) $(AUTOBUILDS)
 
@@ -52,27 +61,30 @@ stdmods: $(STDMODS)
 
 
 
-## STNRD
-$(AUTOBUILDS): %: %$(OBJECT)
+## PATTERNS
+$(AUTOBUILDS): %$(OUTPUT): %$(OBJECT)
 	$(LINK)
 
-$(MODULES): %: %$(SOURCE) $(STDMODS)
+$(MODULES): %$(OBJECT): %$(SOURCE) $(STDMODS)
 	$(COMPILE)
 
-$(STDMODS): %: %$(SOURCE) $(STDMODS)
+$(STDMODS): %$(OBJECT): %$(SOURCE)
 	$(COMPILE)
 
 %$(OBJECT): %$(SOURCE) $(STDMODS)
 	$(COMPILE)
+#DD$(OBJECT): %$(SOURCE)
+#	$(COMPILE)
 
 
 ## UTILS
-.INTERMEDIATE: $(BUILDS:%=%$(OBJECT)) $(AUTOBUILDS:%=%$(OBJECT))
+.INTERMEDIATE: $(AUTOBUILDS:%$(OUTPUT)=%$(OBJECT)) $(BUILDS:%$(OUTPUT)=%$(OBJECT))
 
-.PHONY: all clean vclean builds modules stdmods
+.PHONY: all remake clean vclean builds modules stdmods
 
 clean:
 	$(RM) $(GARBAGE)
 
 vclean: clean
 	$(RM) $(EXEC)
+
