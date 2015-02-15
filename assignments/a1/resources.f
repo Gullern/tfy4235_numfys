@@ -14,7 +14,7 @@ module precision_w
 
     private         ! Default to private
 
-    public :: sp, dp, wp
+    public :: sp, dp, wp, PI
 
 
     ! ######## Precision #########
@@ -27,6 +27,13 @@ module precision_w
 
     ! -- working
     integer, parameter :: wp = dp
+
+
+    ! ######## Constants #########
+
+    ! -- PI
+    real(wp) :: PI = 4.0_wp * DATAN(1.0_wp)
+
 
 end module
 
