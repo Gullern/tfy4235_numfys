@@ -73,8 +73,6 @@ $(STDMODS): %$(OBJECT): %$(SOURCE)
 
 %$(OBJECT): %$(SOURCE) $(STDMODS)
 	$(COMPILE)
-#DD$(OBJECT): %$(SOURCE)
-#	$(COMPILE)
 
 
 ## UTILS
