@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Reads and plots data from:
-file_name = 'diffusion';
+file_name = 'biased_diffusion';
 
 import numpy
 from numpy import linspace

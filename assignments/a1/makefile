@@ -4,7 +4,7 @@ BUILDS=
 MODULES=
 STDMODS=resources
 LIBS=slatec
-
+UPFILES=*.png
 
 ## PATHS
 LIBPATH=$(HOME)/lib/
@@ -24,6 +24,12 @@ EXEC=*.out *.exe
 OUTPUT=.out
 SOURCE=.f
 OBJECT=.o
+
+
+## UPLOAD
+UPHOST=jangu@babel.nt.ntnu.no:~/web/
+UPC=scp
+UPFLAGS=
 
 
 ## DEFS
@@ -56,6 +62,8 @@ modules: $(MODULES)
 
 stdmods: $(STDMODS)
 
+upload:
+	$(UPC) $(UPFLAGS) $(UPFILES) $(UPHOST)
 
 ## DEPENDENCIES
 
@@ -78,7 +86,7 @@ $(STDMODS): %$(OBJECT): %$(SOURCE)
 ## UTILS
 .INTERMEDIATE: $(AUTOBUILDS:%$(OUTPUT)=%$(OBJECT)) $(BUILDS:%$(OUTPUT)=%$(OBJECT))
 
-.PHONY: all remake clean vclean builds modules stdmods
+.PHONY: all remake clean vclean builds modules stdmods upload
 
 clean:
 	$(RM) $(GARBAGE)
