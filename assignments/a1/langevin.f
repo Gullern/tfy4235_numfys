@@ -13,13 +13,16 @@ program langvein
     ! ########### PARAM ############
 
     ! -- Number of particles
-    integer, parameter      :: num_par = 1000
+    integer, parameter      :: num_par = 10
+
+    ! -- Time length
+    integer, parameter      :: time = 1000000
 
     ! -- Acuracy
     ! 
     ! dt = dt0 * accuracy, where dt0 is the critical
     ! time step value. 
-    real(wp), parameter     :: accuracy     = 1E-3_wp
+    real(wp), parameter     :: accuracy     = 1E-1_wp
 
     ! -- Standard values
     real(wp), parameter     :: std_r1       = 12E-9_wp
@@ -29,7 +32,7 @@ program langvein
     real(wp), parameter     :: std_kB_T     = 26E-3_wp
     real(wp), parameter     :: std_DU       = 80.0_wp
     real(wp), parameter     :: std_x0       = 0.0_wp
-    real(wp), parameter     :: std_period   = 0.0_wp
+    real(wp), parameter     :: std_period   = 4.0_wp
 
     ! -- Parameters
     real(wp)                :: r1
@@ -75,6 +78,7 @@ program langvein
     K0 = MAX(k0, 1.0_wp)
     dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
     dt = dt * accuracy
+    print *, dt
 
     ! Begin Euler scheme
     call euler()
@@ -98,11 +102,13 @@ contains
 
         open(output_fid, file=file_name)
         write(output_fid, *) particles
-        do i = 1, 1000
+        do i = 1, FLOOR(time / accuracy)
             particles = particles + force(particles, t) * dt + SQRT(2 * diff * dt) * rand_gauss(size(particles, 1))
             !x = x + SQRT(2.0_wp * diff * dt) * rand_gauss()
             t = t + dt
-            write(output_fid, *) particles
+            if (mod(i, 100) == 0) then
+                write(output_fid, *) particles
+            end if
         end do
 
         close(output_fid)
@@ -195,7 +201,7 @@ contains
         real(wp)                        :: time
 
         pos = x - FLOOR(x)
-        time = t - FLOOR(t / (omega * period))
+        time = t - FLOOR(t / (omega * period)) * omega * period
 
         ! period == 0 represents time-independent potential
         if (period /= 0 .AND. time < 3.0_wp / 4.0_wp * omega * period) then
@@ -233,7 +239,7 @@ contains
         real(wp)                        :: time
 
         pos = x - FLOOR(x)
-        time = t - FLOOR(t / (omega * period))
+        time = t - FLOOR(t / (omega * period)) * omega * period
 
         ! period == 0 represents time-independent potential
         if (period /= 0 .AND. time < 3.0_wp / 4.0_wp * omega * period) then

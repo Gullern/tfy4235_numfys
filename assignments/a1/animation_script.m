@@ -6,11 +6,13 @@
 [len, number] = size(particles);
 figure(1);
 clf;
-axis([-0.05, 0.05, 0, 1000]);
+x = -1.2 : 0.1 : 1.2;
+axis([x(1), x(end), 0, 30]);
 hold all;
 for i = 1 : len
+    disp(i);
     cla(gca);
-    hist(particles(i, :), -0.05:0.004:0.05);
+    hist(particles(i, :), x);
     drawnow;
     pause(0.001);
 end

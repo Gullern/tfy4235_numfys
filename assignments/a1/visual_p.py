@@ -41,11 +41,7 @@ def read_data():
     fid = open(file_name + '.dat', 'r');
     lines = fid.readlines();
     length = len(lines);
-    if (len(lines[0].split()) > 1):
-        data = [float(line.split()[0]) for line in lines];
-        print("Warning: multiple columns detected, only prosessing first!");
-    else:
-        data = [float(line.strip()) for line in lines];
+    data = [[float(element.strip()) for element in line.split()] for line in lines]
     print('lines: ' + str(length));
     return (length, data);
 
