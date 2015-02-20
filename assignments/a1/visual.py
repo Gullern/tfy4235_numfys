@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# Reads and plots data from:
-file_name = 'biased_diffusion';
-
 import numpy
 from numpy import linspace
 import matplotlib
@@ -11,24 +8,24 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 rc('text', usetex=True);
 
-def graph():
-    (length, data) = read_data();
+def graph(file_name):
+    (length, width, data) = read_data(file_name);
     plt.figure();
     x = linspace(0, length - 1, length);
     y = data;
     plt.plot(x, y);
     plt.savefig(file_name + '.png');
 
-def graph_r():
-    (length, data) = read_data();
+def graph_r(file_name):
+    (length, width, data) = read_data(file_name);
     plt.figure();
     y = linspace(0, length - 1, length);
     x = data;
     plt.plot(x, y);
     plt.savefig(file_name + '.png');
 
-def hist():
-    (length, data) = read_data();
+def hist(file_name):
+    (length, width, data) = read_data(file_name);
     bins = 20;
     plt.figure();
     plt.hist(data, bins = bins);
@@ -37,25 +34,15 @@ def hist():
     #plt.ylabel('Count time');
     plt.savefig(file_name + '.png');
 
-def read_data():
+def read_data(file_name):
     fid = open(file_name + '.dat', 'r');
     lines = fid.readlines();
     length = len(lines);
-    if (len(lines[0].split()) > 1):
-        data = [float(line.split()[0]) for line in lines];
-        print("Warning: multiple columns detected, only prosessing first!");
-    else:
-        data = [float(line.strip()) for line in lines];
-    print('lines: ' + str(length));
-    return (length, data);
+    width = len(lines[0]);
+    data = [[float(element.strip()) for element in line.split()] for line in lines]
+    print('lines: ' + str(length) + ', columns: ' + str(width));
+    return (length, width, data);
 
-def main():
-    graph_r();
-
-#import sys
-#print sys.argv;
-
-#print locals()['graph'];
-
-main();
+import term_con
+term_con.terminal_call(locals());
 
