@@ -67,6 +67,10 @@ program langvein
     ! Get input
     call input()
 
+    ! Convert to SI
+    DU = DU * 1.602E-19_wp
+    kB_T = kB_T * 1.602E-19_wp
+
     ! Calculate parameters
     gamma1  = 6.0_wp * PI * eta * r1
     omega   = DU / (gamma1 * L ** 2)
@@ -74,11 +78,16 @@ program langvein
 
     ! Find dt
     max_force = MAX(1.0_wp / alpha, 1.0_wp / ( 1.0_wp - alpha))
-    K0 = (max_force * alpha ** 2 / (128.0_wp * sqrt(2.0_wp * diff) * diff)) ** ( 1.0_wp / 3.0_wp)
+    !K0 = (max_force * alpha ** 2 / (128.0_wp * sqrt(2.0_wp * diff) * diff)) ** ( 1.0_wp / 3.0_wp)
+    !K0 = MAX(k0, 1.0_wp)
+    !dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
+    K0 = (max_force * alpha / (64.0_wp * diff)) ** ( 1.0_wp / 2.0_wp)
     K0 = MAX(k0, 1.0_wp)
     dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
     dt = dt * accuracy
     print *, dt
+    print *, omega * period
+    print *, omega * period / dt / 100
 
     ! Begin Euler scheme
     call euler()
@@ -139,7 +148,7 @@ contains
         call input_w_default(alpha, std_alpha)
         write(*, format_1, advance='no') 'Potential periodic length L (', std_L, '):'
         call input_w_default(L, std_L)
-        write(*, format_1, advance='no') 'Unknown constant eta (', std_eta, '):'
+        write(*, format_1, advance='no') 'Dynamic viscosity eta (', std_eta, '):'
         call input_w_default(eta, std_eta)
         write(*, format_1, advance='no') 'Temperature energy kB_T (', std_kB_T, '):'
         call input_w_default(kB_T, std_kB_T)
@@ -160,7 +169,7 @@ contains
     ! the input is a valid number, param is set to
     ! it. If not, param is set to default_param. 
     ! Specifically, this alows a blank line (ENTER)
-    ! to be given, giving the parameters it's 
+    ! to be given, giving the parameters its 
     ! default value. 
     ! 
     subroutine input_w_default(param, default_param)

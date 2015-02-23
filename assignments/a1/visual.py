@@ -38,7 +38,7 @@ def read_data(file_name):
     fid = open(file_name + '.dat', 'r');
     lines = fid.readlines();
     length = len(lines);
-    width = len(lines[0]);
+    width = len(lines[0].split());
     data = [[float(element.strip()) for element in line.split()] for line in lines]
     print('lines: ' + str(length) + ', columns: ' + str(width));
     return (length, width, data);
