@@ -13,16 +13,19 @@ program langvein
     ! ########### PARAM ############
 
     ! -- Number of particles
-    integer, parameter      :: num_par = 10
+    integer, parameter      :: NUM_PAR = 1000
 
     ! -- Time length
-    integer, parameter      :: time = 1000000
+    integer, parameter      :: TIME = 50000
 
     ! -- Acuracy
     ! 
     ! dt = dt0 * accuracy, where dt0 is the critical
     ! time step value. 
-    real(wp), parameter     :: accuracy     = 1E-1_wp
+    real(wp), parameter     :: DT_ACCURACY     = 1E-1_wp
+
+    ! -- Physical constants
+    real(wp), parameter     :: ELEMENTARY_CHARGE = 1.60217657E-19_wp
 
     ! -- Standard values
     real(wp), parameter     :: std_r1       = 12E-9_wp
@@ -32,7 +35,9 @@ program langvein
     real(wp), parameter     :: std_kB_T     = 26E-3_wp
     real(wp), parameter     :: std_DU       = 80.0_wp
     real(wp), parameter     :: std_x0       = 0.0_wp
-    real(wp), parameter     :: std_period   = 4.0_wp
+    real(wp), parameter     :: std_period   = 1.0_wp
+
+    ! ########### VARS #############
 
     ! -- Parameters
     real(wp)                :: r1
@@ -50,44 +55,41 @@ program langvein
     real(wp)                :: diff
     real(wp)                :: dt
 
-    ! FILE
-    character(len=*), parameter     :: file_name    = 'biased_diffusion.dat'
-    integer, parameter              :: output_fid   = 20
+    ! -- File
+    character(len=*), parameter     :: TRAJECTORIES_FILENAME    = 'biased_diffusion.dat'
+    integer, parameter              :: TRAJECTORIES_OUTFID      = 20
+    character(len=*), parameter     :: POTENTIAL_FILENAME       = 'potential_energy.dat'
+    integer, parameter              :: POTENTIAL_OUTFID         = 30
 
-    ! VARS
-    real(wp), dimension(num_par)    :: particles
+    ! -- Vars
+    real(wp), dimension(NUM_PAR)    :: particles
     real(wp)                        :: max_force
     real(wp)                        :: K0
 
     ! ########## END DECL ########
 
-    ! Seed random
+    ! -- Seed random
     call init_random_seed
 
-    ! Get input
+    ! -- Get input
     call input()
 
     ! Convert to SI
-    DU = DU * 1.602E-19_wp
-    kB_T = kB_T * 1.602E-19_wp
+    DU = DU * ELEMENTARY_CHARGE
+    kB_T = kB_T * ELEMENTARY_CHARGE
 
-    ! Calculate parameters
+    ! Calculate derived parameters
     gamma1  = 6.0_wp * PI * eta * r1
     omega   = DU / (gamma1 * L ** 2)
     diff    = kB_T / DU
 
     ! Find dt
     max_force = MAX(1.0_wp / alpha, 1.0_wp / ( 1.0_wp - alpha))
-    !K0 = (max_force * alpha ** 2 / (128.0_wp * sqrt(2.0_wp * diff) * diff)) ** ( 1.0_wp / 3.0_wp)
-    !K0 = MAX(k0, 1.0_wp)
-    !dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
     K0 = (max_force * alpha / (64.0_wp * diff)) ** ( 1.0_wp / 2.0_wp)
     K0 = MAX(k0, 1.0_wp)
     dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
-    dt = dt * accuracy
+    dt = dt * DT_ACCURACY
     print *, dt
-    print *, omega * period
-    print *, omega * period / dt / 100
 
     ! Begin Euler scheme
     call euler()
@@ -97,31 +99,64 @@ contains
     ! 
     ! Euler scheme
     ! 
-    ! Finds path determined by ODE
-    ! by iteration. 
+    ! Finds path determined by ODE by iteration. 
+    ! Writes positions to file every 
     ! 
     subroutine euler()
-        ! ALLOC
+        ! -- PARAM
+        integer, parameter  :: WRITE_MOD = 100
+
+        ! -- VARS
         integer     :: i
         real(wp)    :: t
+        integer     :: temp
 
-        ! Initiate in reduced units
+        temp = 0
+
+        ! -- Initiate in reduced units
         particles = x0 / L
         t = 0.0_wp
 
-        open(output_fid, file=file_name)
-        write(output_fid, *) particles
-        do i = 1, FLOOR(time / accuracy)
-            particles = particles + force(particles, t) * dt + SQRT(2 * diff * dt) * rand_gauss(size(particles, 1))
-            !x = x + SQRT(2.0_wp * diff * dt) * rand_gauss()
+        ! -- Write to file
+        open(TRAJECTORIES_OUTFID, file=TRAJECTORIES_FILENAME)
+        open(POTENTIAL_OUTFID, file=POTENTIAL_FILENAME)
+        write(TRAJECTORIES_OUTFID, *) particles
+
+        ! Main loop
+        do i = 1, FLOOR(time / DT_ACCURACY)
+            particles = particles + force(particles, t) * dt + SQRT(2 * diff * dt) * rand_gauss(SIZE(particles, 1))
             t = t + dt
-            if (mod(i, 100) == 0) then
-                write(output_fid, *) particles
+
+            ! -- Write to file
+            if (MOD(i, WRITE_MOD) == 0) then
+                write(TRAJECTORIES_OUTFID, *) particles
+            end if
+
+            if (temp == 0 .AND. t > 3.0_wp / 4.0_wp * omega * period) then
+                print *, SIZE(particles)
+                write(POTENTIAL_OUTFID, *) potential(particles, t)
+                temp = 1
             end if
         end do
 
-        close(output_fid)
+        close(TRAJECTORIES_OUTFID)
+        close(POTENTIAL_OUTFID)
     end subroutine
+
+    ! 
+    ! Total potential energy of the particles
+    ! 
+    ! Calculates the sum of the potential energies
+    ! of all the particles, given the potential. 
+    ! 
+    function potential_energy(particles, time)
+        ! -- ARGS
+        real(wp), dimension(:), intent(in)  :: particles
+        real(wp), intent(in)                :: time
+        real(wp)                            :: potential_energy
+
+        potential_energy = SUM(potential(particles, time))
+    end function
 
     ! 
     ! Read input parameters
@@ -130,27 +165,28 @@ contains
     ! from terminal.
     ! 
     subroutine input()
-        character(len=*), parameter :: format_0 = "(A)"
-        character(len=*), parameter :: format_1 = "(A, F14.10, A)"
+        ! -- PARAM
+        character(len=*), parameter :: FORMAT_0 = "(A)"
+        character(len=*), parameter :: FORMAT_1 = "(A, F14.10, A)"
 
-        write(*, format_0) 'Input parameters:'
+        write(*, FORMAT_0) 'Input parameters:'
 
         ! Gather input
-        write(*, format_1, advance='no') 'Potential strength DeltaU (', std_DU, '):'
+        write(*, FORMAT_1, advance='no') 'Potential strength DeltaU (', std_DU, '):'
         call input_w_default(DU, std_DU)
-        write(*, format_1, advance='no') 'Initial particle position x0 (', std_x0, '):'
+        write(*, FORMAT_1, advance='no') 'Initial particle position x0 (', std_x0, '):'
         call input_w_default(x0, std_x0)
-        write(*, format_1, advance='no') 'Time period tau (', std_period, '):'
+        write(*, FORMAT_1, advance='no') 'Time period tau (', std_period, '):'
         call input_w_default(period, std_period)
-        write(*, format_1, advance='no') 'Particle radius r1 (', std_r1, '):'
+        write(*, FORMAT_1, advance='no') 'Particle radius r1 (', std_r1, '):'
         call input_w_default(r1, std_r1)
-        write(*, format_1, advance='no') 'Potential asymmetry factor alpha (', std_alpha, '):'
+        write(*, FORMAT_1, advance='no') 'Potential asymmetry factor alpha (', std_alpha, '):'
         call input_w_default(alpha, std_alpha)
-        write(*, format_1, advance='no') 'Potential periodic length L (', std_L, '):'
+        write(*, FORMAT_1, advance='no') 'Potential periodic length L (', std_L, '):'
         call input_w_default(L, std_L)
-        write(*, format_1, advance='no') 'Dynamic viscosity eta (', std_eta, '):'
+        write(*, FORMAT_1, advance='no') 'Dynamic viscosity eta (', std_eta, '):'
         call input_w_default(eta, std_eta)
-        write(*, format_1, advance='no') 'Temperature energy kB_T (', std_kB_T, '):'
+        write(*, FORMAT_1, advance='no') 'Temperature energy kB_T (', std_kB_T, '):'
         call input_w_default(kB_T, std_kB_T)
 
         ! Validation
@@ -158,7 +194,7 @@ contains
             write(*, *) "Fatal error!"
             write(*, *) "DU, r1, L, eta, kB_T and alpha are not allowed to be 0."
             write(*, *) "Exiting"
-            call EXIT(1)
+            call EXIT(1)    ! Hard exit
         end if
     end subroutine
 
@@ -173,16 +209,20 @@ contains
     ! default value. 
     ! 
     subroutine input_w_default(param, default_param)
+        ! -- ARGS
         real(wp), intent(out) :: param
         real(wp), intent(in)  :: default_param
 
+        ! -- PARAM
         integer, parameter              :: MAX_LENGTH   = 100
-        character(len=*), parameter     :: format_0     = "(A)"
+        character(len=*), parameter     :: FORMAT_0     = "(A)"
+
+        ! -- VARS
         character(len=MAX_LENGTH)       :: input_str
         real(wp)                        :: input_real
         integer                         :: flag
 
-        read(*, format_0) input_str
+        read(*, FORMAT_0) input_str
 
         read(input_str, *, iostat=flag) input_real
         if (flag == 0) then
@@ -199,14 +239,13 @@ contains
     ! time t, all in reduced units. 
     ! 
     function potential(x, t)
-
-        ! ARGS
-        real(wp), intent(in), dimension(:)  :: x
+        ! -- ARGS
+        real(wp), dimension(:), intent(in)  :: x
         real(wp), intent(in)                :: t
-        real(wp), dimension(size(x, 1))     :: potential
+        real(wp), dimension(SIZE(x, 1))     :: potential
 
-        ! ALLOC
-        real(wp), dimension(size(x, 1)) :: pos
+        ! -- VARS
+        real(wp), dimension(SIZE(x, 1)) :: pos
         real(wp)                        :: time
 
         pos = x - FLOOR(x)
@@ -221,11 +260,6 @@ contains
             elsewhere
                 potential = (1.0_wp - pos) / (1.0_wp - alpha)
             end where
-            !if (pos < alpha) then   ! pos is non-negative
-                !potential = pos / alpha
-            !else
-                !potential = (1.0_wp - pos) / (1.0_wp - alpha)
-            !end if
         end if
     end function 
 
@@ -237,14 +271,13 @@ contains
     ! t. All in reduced units. 
     ! 
     function force(x, t)
-
-        ! ARGS
-        real(wp), intent(in), dimension(:)  :: x
+        ! -- ARGS
+        real(wp), dimension(:), intent(in)  :: x
         real(wp), intent(in)                :: t
-        real(wp), dimension(size(x, 1))     :: force
+        real(wp), dimension(SIZE(x, 1))     :: force
 
-        ! ALLOC
-        real(wp), dimension(size(x, 1)) :: pos
+        ! -- VARS
+        real(wp), dimension(SIZE(x, 1)) :: pos
         real(wp)                        :: time
 
         pos = x - FLOOR(x)
@@ -266,17 +299,16 @@ contains
     ! Gaussian random numbers
     ! 
     ! Draws Gaussian distributed random numbers. Normal 
-    ! distribution is implemented by the Box-Müller 
+    ! distribution is implemented by the polar Box-Müller 
     ! algorithm, using the uniform distribution from 
     ! random_number(). 
     ! 
     function rand_gauss(length)
-
-        ! ARGS
+        ! -- ARGS
         integer, intent(in)         :: length
         real(wp), dimension(length) :: rand_gauss
 
-        ! ALLOC
+        ! -- VARS
         real(wp)    :: u1
         real(wp)    :: u2
         real(wp)    :: s
@@ -284,7 +316,7 @@ contains
 
         do i = 1, length
             s = 0.0_wp
-            do while(s == 0 .or. s >= 1)
+            do while(s == 0 .OR. s >= 1)
                 call random_number(u1)
                 call random_number(u2)
                 u1 = u1 * 2 - 1
