@@ -13,3 +13,7 @@
 
 ## Potentially large generated datafiles
 *.dat
+
+## Temporary files
+*.swp
+

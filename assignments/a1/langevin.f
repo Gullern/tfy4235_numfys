@@ -13,16 +13,16 @@ program langvein
     ! ########### PARAM ############
 
     ! -- Number of particles
-    integer, parameter      :: NUM_PAR = 1000
+    integer, parameter      :: NUM_PAR = 10
 
     ! -- Time length
-    integer, parameter      :: TIME = 50000
+    integer, parameter      :: TIME = 500
 
     ! -- Acuracy
     ! 
     ! dt = dt0 * accuracy, where dt0 is the critical
     ! time step value. 
-    real(wp), parameter     :: DT_ACCURACY     = 1E-1_wp
+    real(wp), parameter     :: DT_ACCURACY     = 1E-2_wp
 
     ! -- Physical constants
     real(wp), parameter     :: ELEMENTARY_CHARGE = 1.60217657E-19_wp
@@ -65,6 +65,7 @@ program langvein
     real(wp), dimension(NUM_PAR)    :: particles
     real(wp)                        :: max_force
     real(wp)                        :: K0
+    real(wp)                        :: end_time
 
     ! ########## END DECL ########
 
@@ -92,26 +93,27 @@ program langvein
     print *, dt
 
     ! Begin Euler scheme
-    call euler()
+    call euler(end_time)
+
+    call calc_drift_velocity(end_time)
 
 contains
 
     ! 
-    ! Euler scheme
-    ! 
+    ! Euler scheme    ! 
     ! Finds path determined by ODE by iteration. 
     ! Writes positions to file every 
     ! 
-    subroutine euler()
+    subroutine euler(end_time)
+        ! -- ARGS
+        real(wp), intent(out) :: end_time
+
         ! -- PARAM
-        integer, parameter  :: WRITE_MOD = 100
+        integer, parameter  :: WRITE_MOD = 1
 
         ! -- VARS
         integer     :: i
         real(wp)    :: t
-        integer     :: temp
-
-        temp = 0
 
         ! -- Initiate in reduced units
         particles = x0 / L
@@ -130,33 +132,26 @@ contains
             ! -- Write to file
             if (MOD(i, WRITE_MOD) == 0) then
                 write(TRAJECTORIES_OUTFID, *) particles
-            end if
-
-            if (temp == 0 .AND. t > 3.0_wp / 4.0_wp * omega * period) then
-                print *, SIZE(particles)
                 write(POTENTIAL_OUTFID, *) potential(particles, t)
-                temp = 1
             end if
         end do
 
         close(TRAJECTORIES_OUTFID)
         close(POTENTIAL_OUTFID)
+
+        end_time = t
     end subroutine
 
-    ! 
-    ! Total potential energy of the particles
-    ! 
-    ! Calculates the sum of the potential energies
-    ! of all the particles, given the potential. 
-    ! 
-    function potential_energy(particles, time)
+    subroutine calc_drift_velocity(end_time)
         ! -- ARGS
-        real(wp), dimension(:), intent(in)  :: particles
-        real(wp), intent(in)                :: time
-        real(wp)                            :: potential_energy
+        real(wp), intent(in) :: end_time
 
-        potential_energy = SUM(potential(particles, time))
-    end function
+        ! -- VARS
+        real(wp) :: drift_velocity
+
+        drift_velocity = SUM(particles / end_time) / SIZE(particles)
+        print *, drift_velocity
+    end subroutine
 
     ! 
     ! Read input parameters

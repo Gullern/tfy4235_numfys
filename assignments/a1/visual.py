@@ -9,7 +9,7 @@ from matplotlib import rc
 rc('text', usetex=True);
 
 def graph(file_name):
-    (length, width, data) = read_data(file_name);
+    (length, width, data) = read_matrix(file_name);
     plt.figure();
     x = linspace(0, length - 1, length);
     y = data;
@@ -17,7 +17,7 @@ def graph(file_name):
     plt.savefig(file_name + '.png');
 
 def graph_r(file_name):
-    (length, width, data) = read_data(file_name);
+    (length, width, data) = read_matrix(file_name);
     plt.figure();
     y = linspace(0, length - 1, length);
     x = data;
@@ -25,8 +25,8 @@ def graph_r(file_name):
     plt.savefig(file_name + '.png');
 
 def hist(file_name):
-    (length, width, data) = read_data(file_name);
-    bins = 20;
+    (length, width, data) = read_flat(file_name);
+    bins = 100;
     plt.figure();
     plt.hist(data, bins = bins);
     #plt.axis([0, length, 0, iterations]);
@@ -34,13 +34,23 @@ def hist(file_name):
     #plt.ylabel('Count time');
     plt.savefig(file_name + '.png');
 
-def read_data(file_name):
+def read_matrix(file_name):
     fid = open(file_name + '.dat', 'r');
     lines = fid.readlines();
     length = len(lines);
     width = len(lines[0].split());
-    data = [[float(element.strip()) for element in line.split()] for line in lines]
+    data = [[float(element.strip()) for element in line.split()] for line in lines];
     print('lines: ' + str(length) + ', columns: ' + str(width));
+    return (length, width, data);
+
+def read_flat(file_name):
+    fid = open(file_name + '.dat', 'r');
+    lines = fid.readlines();
+    length = len(lines);
+    width = len(lines[0].split());
+    data = [float(element.strip()) for line in lines for element in line.split()];
+    print('lines: ' + str(length) + ', columns: ' + str(width));
+    print('flattened');
     return (length, width, data);
 
 import term_con
