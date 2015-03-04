@@ -120,9 +120,9 @@ contains
         t = 0.0_wp
 
         ! -- Write to file
-        open(TRAJECTORIES_OUTFID, file=TRAJECTORIES_FILENAME)
-        open(POTENTIAL_OUTFID, file=POTENTIAL_FILENAME)
-        write(TRAJECTORIES_OUTFID, *) particles
+        !open(TRAJECTORIES_OUTFID, file=TRAJECTORIES_FILENAME)
+        !open(POTENTIAL_OUTFID, file=POTENTIAL_FILENAME)
+        !write(TRAJECTORIES_OUTFID, *) particles
 
         ! Main loop
         do i = 1, FLOOR(time / DT_ACCURACY)
@@ -131,13 +131,13 @@ contains
 
             ! -- Write to file
             if (MOD(i, WRITE_MOD) == 0) then
-                write(TRAJECTORIES_OUTFID, *) particles
-                write(POTENTIAL_OUTFID, *) potential(particles, t)
+                !write(TRAJECTORIES_OUTFID, *) particles
+                !write(POTENTIAL_OUTFID, *) potential(particles, t)
             end if
         end do
 
-        close(TRAJECTORIES_OUTFID)
-        close(POTENTIAL_OUTFID)
+        !close(TRAJECTORIES_OUTFID)
+        !close(POTENTIAL_OUTFID)
 
         end_time = t
     end subroutine

@@ -4,11 +4,17 @@ BUILDS=
 MODULES=
 STDMODS=resources
 LIBS=slatec
+
+## SECONDARY
 UPFILES=*.png
+PATHFILE=.structure
 
 ## PATHS
+CURRENT_DIR:=$(abspath $(MAKEFILE_LIST))
 LIBPATH=$(HOME)/lib/
 STDMODPATH=.
+FIGPATH=$(CURRENT_DIR)/fig/
+OUTPUTPATH=$(CURRENT_DIR)/output/
 
 
 ## COMMANDS
@@ -24,6 +30,7 @@ EXEC=*.out *.exe
 OUTPUT=.out
 SOURCE=.f
 OBJECT=.o
+INIT_SH=.path_init.sh
 
 
 ## UPLOAD
@@ -51,7 +58,7 @@ endef
 
 
 ## GENERAL
-all: builds
+all: init builds
 
 remake:
 	$(MAKE) --always-make all
@@ -64,6 +71,9 @@ stdmods: $(STDMODS)
 
 upload:
 	$(UPC) $(UPFLAGS) $(UPFILES) $(UPHOST)
+
+init: $(PATHFILE)
+
 
 ## DEPENDENCIES
 
@@ -86,11 +96,20 @@ $(STDMODS): %$(OBJECT): %$(SOURCE)
 ## UTILS
 .INTERMEDIATE: $(AUTOBUILDS:%$(OUTPUT)=%$(OBJECT)) $(BUILDS:%$(OUTPUT)=%$(OBJECT))
 
-.PHONY: all remake clean vclean builds modules stdmods upload
+.PHONY: all remake clean vclean init builds modules stdmods upload
 
 clean:
 	$(RM) $(GARBAGE)
 
 vclean: clean
 	$(RM) $(EXEC)
+
+
+## PATH FILE
+$(PATHFILE):
+	@echo "PATH_LIB=$(LIBPATH)" > $(PATHFILE)
+	@echo "PATH_STDMOD=$(STDMODPATH)" >> $(PATHFILE)
+	@echo "PATH_FIG=$(FIGPATH)" >> $(PATHFILE)
+	@echo "PATH_OUTPUT=$(OUTPUTPATH)" >> $(PATHFILE)
+	@echo >> $(PATHFILE)
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+path_structure_file_name = ".structure";
+
 def terminal_call(functions):
     import sys
     from collections import deque
@@ -15,5 +17,20 @@ def terminal_call(functions):
         try:
             functions[func](*func_args);
         except KeyError:
-            print('Error! Cannot find function named:' + func);
+            print('TermCon Error: Cannot find function named: ' + func);
+            exit();
+
+def get_path_structure():
+    paths = {};
+    fid = open(path_structure_file_name, 'r');
+    lines = fid.readlines();
+    for line in lines:
+        if (line.strip() == ''):
+            continue;
+        data = line.split('=');
+        if (len(data) != 2):
+            print('Parse error: invalid file syntax on\n' + str(data));
+            exit();
+        paths[data[0].strip()] = data[1].strip();
+    return paths;
 

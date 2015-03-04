@@ -17,3 +17,6 @@
 ## Temporary files
 *.swp
 
+## Init files
+.init
+
