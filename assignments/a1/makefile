@@ -1,78 +1,70 @@
 ## SOURCE
-AUTOBUILDS=langevin
-BUILDS=
-MODULES=
-STDMODS=resources
-LIBS=slatec
+AUTOBUILDS  = langevin
+BUILDS      =
+MODULES     =
+STDMODS     = resources
+LIBS        =
+LIBPATH     = $(HOME)/lib/
+STDMODPATH  = .
 
 ## SECONDARY
-UPFILES=fig/*
-PATHFILE=.structure
+UPFILES     = fig/*
+PATHFILE    = .structure
 
-## PATHS
-CURRENT_DIR:=$(dir $(abspath $(MAKEFILE_LIST)))
-LIBPATH=$(HOME)/lib/
-STDMODPATH=.
-FIGPATH=$(CURRENT_DIR)fig/
-OUTPUTPATH=$(CURRENT_DIR)output/
+## CUSTOM PATHS
+CURRENT_DIR :=  $(dir $(abspath $(MAKEFILE_LIST)))
+CUSTOMPATHS =   PATH_FIG=\"$(CURRENT_DIR)fig/\"            \
+                PATH_OUTPUT=\"$(CURRENT_DIR)output/\"
+PATHARGS    =   $(CUSTOMPATHS:%=-DPRE_%)
 
 
 ## COMMANDS
-FC=gfortran
-FFLAGS=-g -ffree-form
-LDFLAGS=
-RM=rm -f
+FC      = gfortran
+FFLAGS  = -g -ffree-form -cpp
+LDFLAGS =
+RM      = rm -f
 
 
 ## FILES
-GARBAGE=*.o *.mod
-EXEC=*.out *.exe
-OUTPUT=.out
-SOURCE=.f
-OBJECT=.o
-INIT_SH=.path_init.sh
+GARBAGE = *.o *.mod *.pyc
+EXEC    = *.out *.exe
+OUTPUT  = .out
+SOURCE  = .f
+OBJECT  = .o
 
 
 ## UPLOAD
-UPHOST=jangu@babel.nt.ntnu.no:~/web/
-UPC=scp
-UPFLAGS=
+UPHOST  = jangu@babel.nt.ntnu.no:~/web/
+UPC     = scp
+UPFLAGS =
 
 
 ## DEFS
-AUTOBUILDS:=$(AUTOBUILDS:%=%$(OUTPUT))
-BUILDS:=$(BUILDS:%=%$(OUTPUT))
-MODULES:=$(MODULES:%=%$(OBJECT))
-STDMODS:=$(STDMODS:%=%$(OBJECT))
+AUTOBUILDS  := $(AUTOBUILDS:%=%$(OUTPUT))
+BUILDS      := $(BUILDS:%=%$(OUTPUT))
+MODULES     := $(MODULES:%=%$(OBJECT))
+STDMODS     := $(STDMODS:%=%$(OBJECT))
 
-LIBARGS=-L$(LIBPATH) $(LIBS:%=-l%)
-STDMODARGS=$(STDMODS:%=$(STDMODPATH)/%)
+LIBARGS     = -L$(LIBPATH) $(LIBS:%=-l%)
+STDMODARGS  = $(STDMODS:%=$(STDMODPATH)/%)
 
 define LINK
-$(FC) $(FFLAGS) $^ $(LDFLAGS) -o $@ $(LIBARGS) $(STDMODARGS)
+$(FC) $(FFLAGS) $(LDFLAGS) -o $@ $^ $(LIBARGS) $(STDMODARGS)
 endef
 
 define COMPILE
-$(FC) $(FFLAGS) -c $<
+$(FC) $(FFLAGS) -c $< $(PATHARGS)
 endef
 
 
 ## GENERAL
 all: init builds
 
-remake:
-	$(MAKE) --always-make all
-
 builds: $(BUILDS) $(AUTOBUILDS)
 
 modules: $(MODULES)
 
 stdmods: $(STDMODS)
-
-upload:
-	$(UPC) $(UPFLAGS) $(UPFILES) $(UPHOST)
-
-init: $(PATHFILE)
 
 
 ## DEPENDENCIES
@@ -95,8 +87,15 @@ $(STDMODS): %$(OBJECT): %$(SOURCE)
 
 ## UTILS
 .INTERMEDIATE: $(AUTOBUILDS:%$(OUTPUT)=%$(OBJECT)) $(BUILDS:%$(OUTPUT)=%$(OBJECT))
+.PHONY: all remake clean vclean teardown init builds modules stdmods upload
 
-.PHONY: all remake clean vclean init builds modules stdmods upload
+init: $(PATHFILE)
+
+remake:
+	$(MAKE) --always-make all
+
+upload:
+	$(UPC) $(UPFLAGS) $(UPFILES) $(UPHOST)
 
 clean:
 	$(RM) $(GARBAGE)
@@ -104,13 +103,14 @@ clean:
 vclean: clean
 	$(RM) $(EXEC)
 
+teardown: vclean
+	$(RM) $(PATHFILE)
+
 
 ## PATH FILE
 $(PATHFILE):
-	@echo "PATH_LIB=$(LIBPATH)" > $(PATHFILE)
-	@echo "PATH_STDMOD=$(STDMODPATH)" >> $(PATHFILE)
-	@echo "PATH_FIG=$(FIGPATH)" >> $(PATHFILE)
-	@echo "PATH_OUTPUT=$(OUTPUTPATH)" >> $(PATHFILE)
+	@touch $(PATHFILE)
+	@$(foreach PATH, $(CUSTOMPATHS), echo "$(PATH)" >> $(PATHFILE);) 
 	@echo >> $(PATHFILE)
 	@echo "Building path file: $(PATHFILE)"
 

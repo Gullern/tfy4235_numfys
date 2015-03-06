@@ -43,8 +43,6 @@ end module
 ! Contains:
 !   Subroutines
 !       - init_random_seed()
-!   Functions
-!       - get_path_structure()
 ! 
 ! ##############################################
 module resources
@@ -139,12 +137,6 @@ contains
         s = mod(s * 279470273_int64, 4294967291_int64)
         lcg = int(mod(s, int(huge(0), int64)), kind(0))
     end function lcg
-
-    function get_path_structure()
-        character(len=100), dimension(3) :: get_path_structure
-
-
-    end function 
 
 end module
 

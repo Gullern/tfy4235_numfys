@@ -13,7 +13,7 @@ program langvein
     ! ########### PARAM ############
 
     ! -- Number of particles
-    integer, parameter      :: NUM_PAR = 10
+    integer, parameter      :: NUM_PAR = 100
 
     ! -- Time length
     integer, parameter      :: TIME = 500
@@ -55,10 +55,16 @@ program langvein
     real(wp)                :: diff
     real(wp)                :: dt
 
+    ! -- Path
+    ! 
+    ! To be replaces by preprocessor
+    character(len=*), parameter     :: PATH_FIG     =   PRE_PATH_FIG
+    character(len=*), parameter     :: PATH_OUTPUT  =   PRE_PATH_OUTPUT
+
     ! -- File
-    character(len=*), parameter     :: TRAJECTORIES_FILENAME    = 'biased_diffusion.dat'
+    character(len=*), parameter     :: TRAJECTORIES_FILENAME    = PATH_OUTPUT // '/biased_diffusion.dat'
     integer, parameter              :: TRAJECTORIES_OUTFID      = 20
-    character(len=*), parameter     :: POTENTIAL_FILENAME       = 'potential_energy.dat'
+    character(len=*), parameter     :: POTENTIAL_FILENAME       = PATH_OUTPUT // '/potential_energy.dat'
     integer, parameter              :: POTENTIAL_OUTFID         = 30
 
     ! -- Vars
@@ -70,39 +76,28 @@ program langvein
     ! ########## END DECL ########
 
     ! -- Seed random
-    call init_random_seed
+    call init_random_seed()
 
     ! -- Get input
     call input()
 
-    ! Convert to SI
-    DU = DU * ELEMENTARY_CHARGE
-    kB_T = kB_T * ELEMENTARY_CHARGE
+    ! -- Process parameters
+    call process_parameters()
 
-    ! Calculate derived parameters
-    gamma1  = 6.0_wp * PI * eta * r1
-    omega   = DU / (gamma1 * L ** 2)
-    diff    = kB_T / DU
-
-    ! Find dt
-    max_force = MAX(1.0_wp / alpha, 1.0_wp / ( 1.0_wp - alpha))
-    K0 = (max_force * alpha / (64.0_wp * diff)) ** ( 1.0_wp / 2.0_wp)
-    K0 = MAX(k0, 1.0_wp)
-    dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
-    dt = dt * DT_ACCURACY
-    print *, dt
-
-    ! Begin Euler scheme
+    ! -- Begin Euler scheme
     call euler(end_time)
 
+    ! -- Calculate drift velocity
     call calc_drift_velocity(end_time)
 
 contains
 
     ! 
-    ! Euler scheme    ! 
-    ! Finds path determined by ODE by iteration. 
-    ! Writes positions to file every 
+    ! Euler scheme
+    ! 
+    ! Finds path determined by ODE by iterative Euler 
+    ! scheme. Writes trajectories and potential energy
+    ! to file. 
     ! 
     subroutine euler(end_time)
         ! -- ARGS
@@ -121,10 +116,10 @@ contains
 
         ! -- Write to file
         !open(TRAJECTORIES_OUTFID, file=TRAJECTORIES_FILENAME)
-        !open(POTENTIAL_OUTFID, file=POTENTIAL_FILENAME)
+        open(POTENTIAL_OUTFID, file=POTENTIAL_FILENAME)
         !write(TRAJECTORIES_OUTFID, *) particles
 
-        ! Main loop
+        ! -- Main loop
         do i = 1, FLOOR(time / DT_ACCURACY)
             particles = particles + force(particles, t) * dt + SQRT(2 * diff * dt) * rand_gauss(SIZE(particles, 1))
             t = t + dt
@@ -132,16 +127,23 @@ contains
             ! -- Write to file
             if (MOD(i, WRITE_MOD) == 0) then
                 !write(TRAJECTORIES_OUTFID, *) particles
-                !write(POTENTIAL_OUTFID, *) potential(particles, t)
+                write(POTENTIAL_OUTFID, *) potential(particles, t)
             end if
         end do
 
         !close(TRAJECTORIES_OUTFID)
-        !close(POTENTIAL_OUTFID)
+        close(POTENTIAL_OUTFID)
 
         end_time = t
     end subroutine
 
+    !
+    ! Calculate drift velocity
+    ! 
+    ! Uses the end positions of the particle to 
+    ! calculate the average drift velocity of 
+    ! each particle. 
+    ! 
     subroutine calc_drift_velocity(end_time)
         ! -- ARGS
         real(wp), intent(in) :: end_time
@@ -151,6 +153,31 @@ contains
 
         drift_velocity = SUM(particles / end_time) / SIZE(particles)
         print *, drift_velocity
+    end subroutine
+
+    !
+    ! Process parameters
+    !
+    ! Does initial parameter processing, including
+    ! unit conversion and calculation of derived
+    ! parameters. 
+    ! 
+    subroutine process_parameters()
+        ! -- Convert to SI
+        DU = DU * ELEMENTARY_CHARGE
+        kB_T = kB_T * ELEMENTARY_CHARGE
+
+        ! -- Calculate derived parameters
+        gamma1  = 6.0_wp * PI * eta * r1
+        omega   = DU / (gamma1 * L ** 2)
+        diff    = kB_T / DU
+
+        ! -- Find dt
+        max_force = MAX(1.0_wp / alpha, 1.0_wp / ( 1.0_wp - alpha))
+        K0 = (max_force * alpha / (64.0_wp * diff)) ** ( 1.0_wp / 2.0_wp)
+        K0 = MAX(k0, 1.0_wp)
+        dt = alpha ** 2 / (128.0_wp * diff * K0 ** 2)
+        dt = dt * DT_ACCURACY
     end subroutine
 
     ! 
@@ -209,11 +236,11 @@ contains
         real(wp), intent(in)  :: default_param
 
         ! -- PARAM
-        integer, parameter              :: MAX_LENGTH   = 100
+        integer, parameter              :: INPUT_MAX_LENGTH   = 100
         character(len=*), parameter     :: FORMAT_0     = "(A)"
 
         ! -- VARS
-        character(len=MAX_LENGTH)       :: input_str
+        character(len=INPUT_MAX_LENGTH)       :: input_str
         real(wp)                        :: input_real
         integer                         :: flag
 

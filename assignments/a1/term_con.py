@@ -13,6 +13,15 @@ def bool_check(string):
 
 
 #
+# Removes surrounding quatation signs
+# 
+def extract_string(string):
+    if (string[0] == '"' and string[-1] == '"'):
+        return string[1:-1];i
+    return string;
+
+
+#
 # Processing argument string into correct type
 #
 def process_argument(argument_string):
@@ -22,7 +31,9 @@ def process_argument(argument_string):
             return arg;
         except ValueError:
             pass;
-    return argument_string;
+
+    # If not int, float or bool, assume string
+    return extract_string(argument_string);
 
 
 #
@@ -61,6 +72,6 @@ def get_path_structure():
         if (len(data) != 2):
             print('Parsing fatal error: invalid file syntax on\n' + str(data));
             exit();
-        paths[data[0].strip()] = data[1].strip();
+        paths[data[0].strip()] = extract_string(data[1].strip());
     return paths;
 

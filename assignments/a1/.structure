@@ -1,5 +1,3 @@
-PATH_LIB=/home/shomea/j/jangu/lib/
-PATH_STDMOD=.
-PATH_FIG=/home/others/shomea/j/jangu/dokument/numfys/assignments/a1/fig/
-PATH_OUTPUT=/home/others/shomea/j/jangu/dokument/numfys/assignments/a1/output/
+PATH_FIG="/media/jangu/stud/dokument/numfys/assignments/a1/fig/"
+PATH_OUTPUT="/media/jangu/stud/dokument/numfys/assignments/a1/output/"
 
