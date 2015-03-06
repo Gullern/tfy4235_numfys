@@ -6,15 +6,15 @@ STDMODS=resources
 LIBS=slatec
 
 ## SECONDARY
-UPFILES=*.png
+UPFILES=fig/*
 PATHFILE=.structure
 
 ## PATHS
-CURRENT_DIR:=$(abspath $(MAKEFILE_LIST))
+CURRENT_DIR:=$(dir $(abspath $(MAKEFILE_LIST)))
 LIBPATH=$(HOME)/lib/
 STDMODPATH=.
-FIGPATH=$(CURRENT_DIR)/fig/
-OUTPUTPATH=$(CURRENT_DIR)/output/
+FIGPATH=$(CURRENT_DIR)fig/
+OUTPUTPATH=$(CURRENT_DIR)output/
 
 
 ## COMMANDS
@@ -112,4 +112,5 @@ $(PATHFILE):
 	@echo "PATH_FIG=$(FIGPATH)" >> $(PATHFILE)
 	@echo "PATH_OUTPUT=$(OUTPUTPATH)" >> $(PATHFILE)
 	@echo >> $(PATHFILE)
+	@echo "Building path file: $(PATHFILE)"
 

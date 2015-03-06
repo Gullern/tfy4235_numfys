@@ -1,5 +1,5 @@
 PATH_LIB=/home/shomea/j/jangu/lib/
 PATH_STDMOD=.
-PATH_FIG=/home/others/shomea/j/jangu/dokument/numfys/assignments/a1/makefile/fig/
-PATH_OUTPUT=/home/others/shomea/j/jangu/dokument/numfys/assignments/a1/makefile/output/
+PATH_FIG=/home/others/shomea/j/jangu/dokument/numfys/assignments/a1/fig/
+PATH_OUTPUT=/home/others/shomea/j/jangu/dokument/numfys/assignments/a1/output/
 

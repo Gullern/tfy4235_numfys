@@ -41,8 +41,10 @@ end module
 ! Generic resources
 ! 
 ! Contains:
-!   Subroutines:
+!   Subroutines
 !       - init_random_seed()
+!   Functions
+!       - get_path_structure()
 ! 
 ! ##############################################
 module resources
@@ -56,11 +58,12 @@ module resources
 
     public :: init_random_seed
 
+    character(len=*), parameter :: path_structure_file_name = ".structure"
+
 contains
 
     ! 
-    ! Initializes random_seed()
-    ! >> public
+    ! Initializes random_seed() : public
     ! 
     ! Provides initialization of the Fortran random number generator with 
     ! a good seed. First checks for system-provided random seed in specified 
@@ -136,6 +139,12 @@ contains
         s = mod(s * 279470273_int64, 4294967291_int64)
         lcg = int(mod(s, int(huge(0), int64)), kind(0))
     end function lcg
+
+    function get_path_structure()
+        character(len=100), dimension(3) :: get_path_structure
+
+
+    end function 
 
 end module
 
