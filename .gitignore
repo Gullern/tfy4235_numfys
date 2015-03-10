@@ -17,6 +17,7 @@
 ## Temporary files
 *.swp
 
-## Init files
+## Config files
 .init
+.structure
 

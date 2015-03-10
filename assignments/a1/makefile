@@ -87,11 +87,11 @@ $(STDMODS): %$(OBJECT): %$(SOURCE)
 
 ## UTILS
 .INTERMEDIATE: $(AUTOBUILDS:%$(OUTPUT)=%$(OBJECT)) $(BUILDS:%$(OUTPUT)=%$(OBJECT))
-.PHONY: all remake clean vclean teardown init builds modules stdmods upload
+.PHONY: all remake clean vclean init builds modules stdmods upload
 
 init: $(PATHFILE)
 
-remake: teardown
+remake: vclean
 	$(MAKE) --always-make all
 
 upload:
@@ -102,8 +102,6 @@ clean:
 
 vclean: clean
 	$(RM) $(EXEC)
-
-teardown: vclean
 	$(RM) $(PATHFILE)
 
 
