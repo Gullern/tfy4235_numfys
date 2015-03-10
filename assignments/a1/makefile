@@ -91,7 +91,7 @@ $(STDMODS): %$(OBJECT): %$(SOURCE)
 
 init: $(PATHFILE)
 
-remake:
+remake: teardown
 	$(MAKE) --always-make all
 
 upload:

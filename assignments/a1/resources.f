@@ -2,10 +2,14 @@
 ! Precision module
 ! 
 ! Contains:
-!   Global variables
+!   Precision parameteres:
 !     - sp: single precision
 !     - dp: double precision
 !     - wp: working precision
+!   Math contants:
+!     - PI
+!   Physical constants:
+!     - ELEMENTARY_CHARGE
 ! 
 ! ################################################
 module precision_w
@@ -14,10 +18,13 @@ module precision_w
 
     private         ! Default to private
 
-    public :: sp, dp, wp, PI
+    public ::   sp, dp, wp, &
+                PI,         &
+                SPEED_OF_LIGHT, NEWTON_GRAVITY, PLANCK_CONSTANT, PLANCK_REDUCED, VACUUM_PERMEABILITY, &
+                VACUUM_PERMITTIVITY, VACUUM_IMPEDANCE, ELEMENTARY_CHARGE
 
 
-    ! ######## Precision #########
+    ! ######## Precision ##############
     
     ! -- single
     integer, parameter :: sp = kind(0.0)
@@ -29,11 +36,26 @@ module precision_w
     integer, parameter :: wp = dp
 
 
-    ! ######## Constants #########
+    ! ######## Math constants #########
 
     ! -- PI
-    real(wp) :: PI = 4.0_wp * DATAN(1.0_wp)
+    real(wp), parameter :: PI           = 4.0_wp * DATAN(1.0_wp)
 
+
+    ! ######## Physical constants #####
+    ! Updated: 2015-03-06
+
+    ! -- Universal constants
+    real(wp), parameter :: SPEED_OF_LIGHT           = 299792458_wp                                          ! [m/s]
+    real(wp), parameter :: NEWTON_GRAVITY           = 6.6738480E-11_wp                                      ! [m^3/kg.s^2]
+    real(wp), parameter :: PLANCK_CONSTANT          = 6.6260695729E-34_wp                                   ! [J.s]
+    real(wp), parameter :: PLANCK_REDUCED           = 1.05457172647E-34_wp                                  ! [J.s]
+
+    ! -- Electromagnetic constants
+    real(wp), parameter :: VACUUM_PERMEABILITY      = 4.0E-7_wp * PI                                        ! [N/A^2]
+    real(wp), parameter :: VACUUM_PERMITTIVITY      = 1.0_wp / (VACUUM_PERMEABILITY * SPEED_OF_LIGHT ** 2)  ! [F/m]
+    real(wp), parameter :: VACUUM_IMPEDANCE         = VACUUM_PERMEABILITY * SPEED_OF_LIGHT                  ! [ohm]
+    real(wp), parameter :: ELEMENTARY_CHARGE        = 1.60217656535E-19_wp                                  ! [C]
 
 end module
 
@@ -56,8 +78,6 @@ module resources
 
     public :: init_random_seed
 
-    character(len=*), parameter :: path_structure_file_name = ".structure"
-
 contains
 
     ! 
@@ -68,13 +88,14 @@ contains
     ! path (default is "/dev/urandom"). Otherwise, a pseudo-random seed is 
     ! generated from the value of the system clock.
     ! 
-    subroutine init_random_seed()
+    subroutine init_random_seed(seed)
+        ! ARGS
+        integer, dimension(:), intent(out), allocatable :: seed
 
         ! Path to system random number generator
         character(len = *), parameter :: file_path_random = "/dev/urandom"
 
         ! ALLOC
-        integer, allocatable :: seed(:)
         integer :: i, n, un, istat, dt(8), pid
         integer(int64) :: t
 

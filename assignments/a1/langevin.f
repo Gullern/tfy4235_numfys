@@ -5,7 +5,7 @@
 ! #############################################
 program langvein
 
-    use precision_w, only : wp, PI
+    use precision_w, only : wp, PI, ELEMENTARY_CHARGE
     use resources, only : init_random_seed
 
     implicit none
@@ -13,7 +13,7 @@ program langvein
     ! ########### PARAM ############
 
     ! -- Number of particles
-    integer, parameter      :: NUM_PAR = 100
+    integer, parameter      :: NUM_PAR = 10
 
     ! -- Time length
     integer, parameter      :: TIME = 500
@@ -23,9 +23,6 @@ program langvein
     ! dt = dt0 * accuracy, where dt0 is the critical
     ! time step value. 
     real(wp), parameter     :: DT_ACCURACY     = 1E-2_wp
-
-    ! -- Physical constants
-    real(wp), parameter     :: ELEMENTARY_CHARGE = 1.60217657E-19_wp
 
     ! -- Standard values
     real(wp), parameter     :: std_r1       = 12E-9_wp
@@ -61,22 +58,27 @@ program langvein
     character(len=*), parameter     :: PATH_FIG     =   PRE_PATH_FIG
     character(len=*), parameter     :: PATH_OUTPUT  =   PRE_PATH_OUTPUT
 
-    ! -- File
-    character(len=*), parameter     :: TRAJECTORIES_FILENAME    = PATH_OUTPUT // '/biased_diffusion.dat'
+    ! -- Log file
+    character(len=*), parameter     :: LOG_FILENAME             = PATH_OUTPUT // 'logfile.log'
+    integer, parameter              :: LOG_OUTFID               = 10
+    
+    ! -- Output files
+    character(len=*), parameter     :: TRAJECTORIES_FILENAME    = PATH_OUTPUT // 'biased_diffusion.dat'
     integer, parameter              :: TRAJECTORIES_OUTFID      = 20
-    character(len=*), parameter     :: POTENTIAL_FILENAME       = PATH_OUTPUT // '/potential_energy.dat'
+    character(len=*), parameter     :: POTENTIAL_FILENAME       = PATH_OUTPUT // 'potential_energy.dat'
     integer, parameter              :: POTENTIAL_OUTFID         = 30
 
     ! -- Vars
-    real(wp), dimension(NUM_PAR)    :: particles
-    real(wp)                        :: max_force
-    real(wp)                        :: K0
-    real(wp)                        :: end_time
+    real(wp), dimension(NUM_PAR)        :: particles
+    real(wp)                            :: max_force
+    real(wp)                            :: K0
+    real(wp)                            :: end_time
+    integer, dimension(:), allocatable  :: rand_seed
 
     ! ########## END DECL ########
 
     ! -- Seed random
-    call init_random_seed()
+    call init_random_seed(rand_seed)
 
     ! -- Get input
     call input()
@@ -85,10 +87,15 @@ program langvein
     call process_parameters()
 
     ! -- Begin Euler scheme
-    call euler(end_time)
+    call euler()
 
     ! -- Calculate drift velocity
-    call calc_drift_velocity(end_time)
+    call calc_drift_velocity()
+
+    ! -- Write log file
+    call write_logfile()
+
+    deallocate(rand_seed)
 
 contains
 
@@ -99,10 +106,7 @@ contains
     ! scheme. Writes trajectories and potential energy
     ! to file. 
     ! 
-    subroutine euler(end_time)
-        ! -- ARGS
-        real(wp), intent(out) :: end_time
-
+    subroutine euler()
         ! -- PARAM
         integer, parameter  :: WRITE_MOD = 1
 
@@ -144,10 +148,7 @@ contains
     ! calculate the average drift velocity of 
     ! each particle. 
     ! 
-    subroutine calc_drift_velocity(end_time)
-        ! -- ARGS
-        real(wp), intent(in) :: end_time
-
+    subroutine calc_drift_velocity()
         ! -- VARS
         real(wp) :: drift_velocity
 
@@ -240,7 +241,7 @@ contains
         character(len=*), parameter     :: FORMAT_0     = "(A)"
 
         ! -- VARS
-        character(len=INPUT_MAX_LENGTH)       :: input_str
+        character(len=INPUT_MAX_LENGTH) :: input_str
         real(wp)                        :: input_real
         integer                         :: flag
 
@@ -252,6 +253,22 @@ contains
         else
             param = default_param
         end if
+    end subroutine
+
+    ! 
+    ! Write log file
+    ! 
+    subroutine write_logfile()
+        integer, dimension(8) :: values
+
+        open(LOG_OUTFID, file=LOG_FILENAME)
+        call date_and_time(VALUES=values)
+        write(LOG_OUTFID, '(A)') '## Langevin log file'
+        write(LOG_OUTFID, '(A, I4.4, A, I2.2, A, I2.2, A, I2.2, A, I2.2, A, I2.2)') & 
+            '## Run: ', values(1), '-', values(2), '-', &
+            values(3), ' ', values(5), ':', values(6), ':', values(7)
+
+        close(LOG_OUTFID)
     end subroutine
 
     ! 
