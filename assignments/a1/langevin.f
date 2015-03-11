@@ -74,14 +74,18 @@ program langvein
     real(wp)                            :: K0
     real(wp)                            :: end_time
     integer, dimension(:), allocatable  :: rand_seed
+    integer                             :: seed_size
 
     ! ########## END DECL ########
 
     ! -- Seed random
-    call init_random_seed(rand_seed)
+    call init_random_seed(rand_seed, seed_size)
 
     ! -- Get input
     call input()
+
+    ! -- Write log file
+    call write_logfile()
 
     ! -- Process parameters
     call process_parameters()
@@ -91,9 +95,6 @@ program langvein
 
     ! -- Calculate drift velocity
     call calc_drift_velocity()
-
-    ! -- Write log file
-    call write_logfile()
 
     deallocate(rand_seed)
 
@@ -217,7 +218,7 @@ contains
             write(*, *) "Fatal error!"
             write(*, *) "DU, r1, L, eta, kB_T and alpha are not allowed to be 0."
             write(*, *) "Exiting"
-            call EXIT(1)    ! Hard exit
+            stop 1    ! Hard exit
         end if
     end subroutine
 
@@ -259,14 +260,42 @@ contains
     ! Write log file
     ! 
     subroutine write_logfile()
-        integer, dimension(8) :: values
+        ! -- Vars
+        integer, dimension(8)   :: values
+        character(len=100)      :: seed_format
+
+        write(seed_format, *) "(A, ", seed_size, "i13)"
 
         open(LOG_OUTFID, file=LOG_FILENAME)
+
+        ! -- Name and date
         call date_and_time(VALUES=values)
         write(LOG_OUTFID, '(A)') '## Langevin log file'
         write(LOG_OUTFID, '(A, I4.4, A, I2.2, A, I2.2, A, I2.2, A, I2.2, A, I2.2)') & 
             '## Run: ', values(1), '-', values(2), '-', &
             values(3), ' ', values(5), ':', values(6), ':', values(7)
+        write(LOG_OUTFID, *) ''
+
+        ! -- Random seed used
+        write(LOG_OUTFID, '(A, i4)') 'seed_size=', seed_size
+        !write(LOG_OUTFID, '(A)') 'rand_seed='
+        !write(LOG_OUTFID, '(i13)', advance='no') rand_seed
+
+        write(LOG_OUTFID, seed_format) 'rand_seed=', rand_seed
+        write(LOG_OUTFID, *) ''
+
+        ! -- Constants
+        write(LOG_OUTFID, '(A)') 'Constants:'
+        write(LOG_OUTFID, '(A, e40.20)') 'DeltaU=', DU
+        write(LOG_OUTFID, '(A, e40.20)') 'x0=', x0
+        write(LOG_OUTFID, '(A, e40.20)') 'tau=', period
+        write(LOG_OUTFID, '(A, e40.20)') 'r1=', r1
+        write(LOG_OUTFID, '(A, e40.20)') 'alpha=', alpha
+        write(LOG_OUTFID, '(A, e40.20)') 'L=', L
+        write(LOG_OUTFID, '(A, e40.20)') 'eta=', eta
+        write(LOG_OUTFID, '(A, e40.20)') 'kB_T=', kB_T
+
+        write(LOG_OUTFID, *) ''
 
         close(LOG_OUTFID)
     end subroutine

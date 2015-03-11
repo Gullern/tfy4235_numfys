@@ -9,6 +9,13 @@
 !   Math contants:
 !     - PI
 !   Physical constants:
+!     - SPEED_OF_LIGHT
+!     - NEWTON_GRAVITY
+!     - PLANCK_CONSTANT
+!     - PLANCK_REDUCED
+!     - VACUUM_PERMEABILITY
+!     - VACUUM_PERMITTIVITY
+!     - VACUUM_IMPEDANCE
 !     - ELEMENTARY_CHARGE
 ! 
 ! ################################################
@@ -81,30 +88,30 @@ module resources
 contains
 
     ! 
-    ! Initializes random_seed() : public
+    ! Initializes random_seed(seed, seed_size) : public
     ! 
     ! Provides initialization of the Fortran random number generator with 
     ! a good seed. First checks for system-provided random seed in specified 
     ! path (default is "/dev/urandom"). Otherwise, a pseudo-random seed is 
     ! generated from the value of the system clock.
     ! 
-    subroutine init_random_seed(seed)
-        ! ARGS
+    subroutine init_random_seed(seed, seed_size)
+        ! -- ARGS
         integer, dimension(:), intent(out), allocatable :: seed
+        integer, intent(out)                            :: seed_size
 
-        ! Path to system random number generator
+        ! -- Path to system random number generator
         character(len = *), parameter :: file_path_random = "/dev/urandom"
 
-        ! ALLOC
-        integer :: i, n, un, istat, dt(8), pid
+        ! -- ALLOC
+        integer :: i, un, istat, dt(8), pid
         integer(int64) :: t
 
-        ! Get random seed size
-        call random_seed(size = n)
-        allocate(seed(n))
+        ! -- Get random seed size
+        call random_seed(size = seed_size)
+        allocate(seed(seed_size))
 
         ! First try if the OS provides a random number generator.
-        
         open(newunit = un, file=file_path_random, access="stream", &
             form="unformatted", action="read", status="old", iostat = istat)
         if (istat == 0) then
@@ -115,7 +122,6 @@ contains
             ! Fallback to XOR:ing the current time and pid. The PID is
             ! useful in case one launches multiple instances of the same
             ! program in parallel.
-            
             call system_clock(t)
             if (t == 0) then
                 call date_and_time(values = dt)
@@ -131,13 +137,13 @@ contains
             pid = getpid()
             t = ieor(t, int(pid, kind(t)))
 
-            ! Generate seed
-            do i = 1, n
+            ! -- Generate seed
+            do i = 1, seed_size
                 seed(i) = lcg(t)
             end do
         end if
 
-        ! Feed seed
+        ! -- Feed seed
         call random_seed(put = seed)
 
     end subroutine init_random_seed

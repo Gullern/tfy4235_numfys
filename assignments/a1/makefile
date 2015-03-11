@@ -20,7 +20,7 @@ PATHARGS    =   $(CUSTOMPATHS:%=-DPRE_%)
 
 ## COMMANDS
 FC      = gfortran
-FFLAGS  = -g -ffree-form -cpp
+FFLAGS  = -g -ffree-form -cpp -std=f2008 -fall-intrinsics
 LDFLAGS =
 RM      = rm -f
 
