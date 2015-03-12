@@ -10,13 +10,21 @@ program langvein
 
     implicit none
 
+    ! ########### Control ##########
+    logical, parameter  :: check_gauss              = .TRUE.
+    logical, parameter  :: run_simulation           = .FALSE.
+    logical, parameter  :: run_drift_velocity       = .FALSE.
+
     ! ########### PARAM ############
 
     ! -- Number of particles
-    integer, parameter      :: NUM_PAR = 10
+    integer, parameter      :: NUM_PAR = 100
 
     ! -- Time length
     integer, parameter      :: TIME = 500
+
+    ! -- Gauss check
+    integer, parameter      :: GAUSS_N = 100000
 
     ! -- Acuracy
     ! 
@@ -37,24 +45,24 @@ program langvein
     ! ########### VARS #############
 
     ! -- Parameters
-    real(wp)                :: r1
-    real(wp)                :: alpha
-    real(wp)                :: L
-    real(wp)                :: eta
-    real(wp)                :: kB_T
-    real(wp)                :: DU
-    real(wp)                :: x0
-    real(wp)                :: period
+    real(wp) :: r1
+    real(wp) :: alpha
+    real(wp) :: L
+    real(wp) :: eta
+    real(wp) :: kB_T
+    real(wp) :: DU
+    real(wp) :: x0
+    real(wp) :: period
 
     ! -- Derived parameters
-    real(wp)                :: gamma1
-    real(wp)                :: omega
-    real(wp)                :: diff
-    real(wp)                :: dt
+    real(wp) :: gamma1
+    real(wp) :: omega
+    real(wp) :: diff
+    real(wp) :: dt
 
     ! -- Path
     ! 
-    ! To be replaces by preprocessor
+    ! To be replaced by preprocessor
     character(len=*), parameter     :: PATH_FIG     =   PRE_PATH_FIG
     character(len=*), parameter     :: PATH_OUTPUT  =   PRE_PATH_OUTPUT
 
@@ -63,10 +71,12 @@ program langvein
     integer, parameter              :: LOG_OUTFID               = 10
     
     ! -- Output files
+    character(len=*), parameter     :: GAUSS_FILENAME           = PATH_OUTPUT // 'gauss.dat'
+    integer, parameter              :: GAUSS_OUTFID             = 20
     character(len=*), parameter     :: TRAJECTORIES_FILENAME    = PATH_OUTPUT // 'biased_diffusion.dat'
-    integer, parameter              :: TRAJECTORIES_OUTFID      = 20
+    integer, parameter              :: TRAJECTORIES_OUTFID      = 30
     character(len=*), parameter     :: POTENTIAL_FILENAME       = PATH_OUTPUT // 'potential_energy.dat'
-    integer, parameter              :: POTENTIAL_OUTFID         = 30
+    integer, parameter              :: POTENTIAL_OUTFID         = 40
 
     ! -- Vars
     real(wp), dimension(NUM_PAR)        :: particles
@@ -78,6 +88,7 @@ program langvein
 
     ! ########## END DECL ########
 
+
     ! -- Seed random
     call init_random_seed(rand_seed, seed_size)
 
@@ -85,18 +96,33 @@ program langvein
     call input()
 
     ! -- Write log file
+    write(*, *) 'Generating log file'
     call write_logfile()
 
     ! -- Process parameters
     call process_parameters()
 
-    ! -- Begin Euler scheme
-    call euler()
+    ! -- Check Gauss
+    if (check_gauss) then
+        write(*, *) 'Checking random number generator'
+        call check_random(GAUSS_N)
+    endif
+
+    ! -- Run a single trajectory simulation
+    if (run_simulation) then
+        write(*, *) 'Initiating paticle simulation'
+        call euler()
+    endif
 
     ! -- Calculate drift velocity
-    call calc_drift_velocity()
+    if (run_drift_velocity) then
+        write(*, *) 'Iniating drift velocity calculation'
+        call calc_drift_velocity()
+    endif
 
+    ! -- Finish
     deallocate(rand_seed)
+    write(*, *) 'All done!'
 
 contains
 
@@ -104,8 +130,8 @@ contains
     ! Euler scheme
     ! 
     ! Finds path determined by ODE by iterative Euler 
-    ! scheme. Writes trajectories and potential energy
-    ! to file. 
+    ! scheme. Writes trajectories and potential
+    ! energy to file. 
     ! 
     subroutine euler()
         ! -- PARAM
@@ -119,10 +145,10 @@ contains
         particles = x0 / L
         t = 0.0_wp
 
-        ! -- Write to file
-        !open(TRAJECTORIES_OUTFID, file=TRAJECTORIES_FILENAME)
+        ! -- Open files
+        open(TRAJECTORIES_OUTFID, file=TRAJECTORIES_FILENAME)
+        write(TRAJECTORIES_OUTFID, *) particles
         open(POTENTIAL_OUTFID, file=POTENTIAL_FILENAME)
-        !write(TRAJECTORIES_OUTFID, *) particles
 
         ! -- Main loop
         do i = 1, FLOOR(time / DT_ACCURACY)
@@ -131,15 +157,14 @@ contains
 
             ! -- Write to file
             if (MOD(i, WRITE_MOD) == 0) then
-                !write(TRAJECTORIES_OUTFID, *) particles
+                write(TRAJECTORIES_OUTFID, *) particles
                 write(POTENTIAL_OUTFID, *) potential(particles, t)
             end if
         end do
 
-        !close(TRAJECTORIES_OUTFID)
+        ! -- Close files
         close(POTENTIAL_OUTFID)
-
-        end_time = t
+        close(TRAJECTORIES_OUTFID)
     end subroutine
 
     !
@@ -278,10 +303,14 @@ contains
 
         ! -- Random seed used
         write(LOG_OUTFID, '(A, i4)') 'seed_size=', seed_size
-        !write(LOG_OUTFID, '(A)') 'rand_seed='
-        !write(LOG_OUTFID, '(i13)', advance='no') rand_seed
-
         write(LOG_OUTFID, seed_format) 'rand_seed=', rand_seed
+        write(LOG_OUTFID, *) ''
+
+        ! -- Parameters
+        write(LOG_OUTFID, '(A)') 'Parameters:'
+        write(LOG_OUTFID, '(A, i10)') 'number_of_particles=', NUM_PAR
+        write(LOG_OUTFID, '(A, i10)') 'time=', TIME
+        write(LOG_OUTFID, '(A, i10)') 'gauss_number=', GAUSS_N
         write(LOG_OUTFID, *) ''
 
         ! -- Constants
@@ -395,6 +424,24 @@ contains
             rand_gauss(i) = u1 * SQRT( - 2.0_wp * LOG(s) / s)
         end do
     end function
+
+    !
+    ! Random number check
+    ! 
+    ! Check if random numbers are Gaussian distributed. 
+    ! Writes N random numbers to file. 
+    ! 
+    subroutine check_random(N)
+        ! -- ARGS
+        integer, intent(in) :: N
+
+        open(GAUSS_OUTFID, file=GAUSS_FILENAME)
+
+        write(GAUSS_OUTFID, *) rand_gauss(N)
+
+        close(GAUSS_OUTFID)
+
+    end subroutine
 
 end program
 

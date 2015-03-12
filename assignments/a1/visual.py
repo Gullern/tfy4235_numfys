@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-####### Imports ##############
+############# Imports ###################
 import numpy as np
 from numpy import linspace
 
@@ -11,67 +11,111 @@ from matplotlib import rc
 rc('text', usetex=True);
 
 from scipy.integrate import quad
-##############################
 
 
-#
-# Graph data: index=x, data=y
-#
-def graph(file_name):
-    (length, width, data) = read_matrix(file_name);
-    plt.figure();
-    x = linspace(0, length - 1, length);
-    y = data;
-    plt.plot(x, y);
-
-    print('Generating plot: ' + file_name + '.png');
-    plt.savefig(paths['PATH_FIG'] + file_name + '.png');
+############# Global defs ###############
 
 #
-# Reversed graph of data: index=y, data=x
+# Fig label class
 #
-def graph_r(file_name):
-    (length, width, data) = read_matrix(file_name);
-    plt.figure();
-    y = linspace(0, length - 1, length);
-    x = data;
-    plt.plot(x, y);
+class figInfo:
+    def __init__(self, title, xlabel, ylabel, legend):
+        self.title = title;
+        self.xlabel = xlabel;
+        self.ylabel = ylabel;
+        self.legend = legend;
 
-    print('Generating reversed plot: ' + file_name + '.png');
-    plt.savefig(paths['PATH_FIG'] + file_name + '.png');
+# Dictionary of figure label information
+figures = {};
+figures['gauss'] = figInfo('Gaussian random numbers', 'Random number', 'Density', ['Generated', 'Theoretical distribution']);
+figures['diffusion'] = figInfo('Potential energy', 'x', 'y', []);
+figures['biased_diffusion'] = figInfo('Potential energy', 'x', 'y', []);
+figures['potential_energy'] = figInfo('Potential energy', 'Energy U [eV]', 'Density', ['Simulation', 'Theoretical']);
+
+# Dictionary of constants from logfile
+constants = {};
+
+############# Plot functions ############
 
 #
-# Histogram of data
+# Plot checking if random numbers are Gaussian distributed. 
 #
-# Optional arguments:
-#   - n_bins: number of bins (std=100)
-#   - normalize: toggle normalization of data (std=false)
-#
-def hist(file_name, n_bins = 100, normalize = False):
+def gauss_check(n_bins = 40, normalize = True):
+    # -- Load files
+    file_name = 'gauss';
     (length, width, data) = read_flat(file_name);
+
+    # -- Generate histogram
+    xmax = max(np.max(data), - np.min(data));
+    xmin = - xmax;
+    x = np.linspace(xmin, xmax, 10000);
+    (hist, bins) = np.histogram(data, bins = n_bins, normed = normalize);
+    center = (bins[:-1] + bins[1:]) / 2.0;
+
+    # -- Compare with theoretical distribution
+    f = lambda x: np.exp(-x ** 2 / 2.0) / ((2 * np.pi) ** (1 / 2.0));
+
+    # -- Produce plot
+    plt.figure();
+    plt.plot(center, hist, 'ro');
+    plt.plot(x, f(x), 'b');
+    print('Generating histogram: ' + file_name + '.png');
+    save_figure(file_name);
+
+
+def trajectories():
+    return;
+
+#
+# Plots the potential energy as a histogram. 
+#
+def potential_energy(n_bins = 100, normalize = True):
+    # -- Load files
+    file_name = 'potential_energy';
+    (length, width, data) = read_flat(file_name);
+    read_logfile();
     print('bins: ' + str(n_bins) + ', normalize: ' + str(normalize));
 
-    hist, bins = np.histogram(data, bins = n_bins, normed = normalize);
-    plt.figure();
-    #plt.hist(data, bins = bins);
-    plt.plot(np.linspace(0, 1, n_bins), hist, 'ro');
+    # -- Convert to dimensionful units
+    data = [number * constants['DeltaU'] for number in data];
 
-    x = linspace(0, 1, 1001);
-    f = lambda x: np.exp(-x * 10) / (4.17E-21 * (1 - np.exp(-10)));
-    area = quad(f, 0.0, 1)[0];
-    func = lambda x: f(x) / area;
-    plt.plot(x, func(x), 'r');
-    #plt.axis([0, length, 0, iterations]);
-    #plt.xlabel('$x$');
-    #plt.ylabel('Count time');
+    # -- Generate histogram
+    xmin = np.min(data);
+    xmax = np.max(data);
+    x = np.linspace(xmin, xmax, 10000);
+    (hist, bins) = np.histogram(data, bins = n_bins, normed = normalize);
+    center = (bins[:-1] + bins[1:]) / 2;
+
+    # -- Compare with theoretical distribution
+    f = lambda x: np.exp(-x / constants['kB_T']) / (constants['kB_T'] * (1 - np.exp(- constants['DeltaU'] / constants['kB_T'])));
+    #area = quad(f, 0.0, 1)[0];
+    #print(area);
+
+    # -- Produce plot
+    plt.figure();
+    plt.plot(center, hist, 'ro');
+    plt.plot(x, f(x), 'b');
     print('Generating histogram: ' + file_name + '.png');
+    save_figure(file_name);
+
+
+############# Generic functions #########
+
+#
+# Adds correct labels and saves figure. 
+#
+def save_figure(file_name):
+    plt.title(figures[file_name].title);
+    plt.xlabel(figures[file_name].xlabel);
+    plt.ylabel(figures[file_name].ylabel);
+    plt.legend(figures[file_name].legend);
     plt.savefig(paths['PATH_FIG'] + file_name + '.png');
 
 #
 # Read data as matrix
 #
 def read_matrix(file_name):
-    print('Reading file: ' + str(file_name) + '.dat');
+    print('Reading file: ' + file_name + '.dat');
     print('Interpret: matrix');
     fid = open(paths['PATH_OUTPUT'] + file_name + '.dat', 'r');
     lines = fid.readlines();
@@ -85,7 +129,7 @@ def read_matrix(file_name):
 # Read data flattened
 #
 def read_flat(file_name):
-    print('Reading file: ' + str(file_name) + '.dat');
+    print('Reading file: ' + file_name + '.dat');
     print('Interpret: flattened');
     fid = open(paths['PATH_OUTPUT'] + file_name + '.dat', 'r');
     lines = fid.readlines();
@@ -95,6 +139,27 @@ def read_flat(file_name):
     print('lines: ' + str(length) + ', columns: ' + str(width));
     return (length, width, data);
 
+#
+# Load constants from logfile
+#
+def read_logfile():
+    file_name = 'logfile.log';
+    print('Reading logfile: ' + file_name);
+    fid = open(paths['PATH_OUTPUT'] + file_name, 'r');
+
+    while (fid.readline().strip() != 'Constants:'):
+        pass;
+
+    for line in fid.readlines():
+        if (line.startswith('#')):
+            continue;
+        line = line.split('=');
+        if (len(line) != 2):
+            continue;
+        constants[line[0].strip()] = float(line[1].strip());
+
+
+############# Main ######################
 import term_con
 paths = term_con.get_path_structure();
 term_con.terminal_call(locals());
